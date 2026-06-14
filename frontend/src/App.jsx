@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 
-const API_URL = 'http://127.0.0.1:8000/api/landing';
-const HISTORY_API_URL = 'http://127.0.0.1:8000/api/predictions/history';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+const apiUrl = (path) => `${API_BASE_URL}${path}`;
+const API_URL = apiUrl('/api/landing');
+const HISTORY_API_URL = apiUrl('/api/predictions/history');
 
 const fallback = {
   badge: 'AI model accuracy 91.7% · ROC-AUC 0.946',
@@ -518,7 +520,7 @@ function App() {
     setPredictLoading(true);
     setPredictResult(null);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/predict', {
+      const res = await fetch(apiUrl('/api/predict'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -944,7 +946,7 @@ function App() {
     setAssistantMessages((prev) => [...prev, { role: 'user', text: question }]);
     setAssistantLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/assistant/chat', {
+      const res = await fetch(apiUrl('/api/assistant/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question, patients: patientRows }),

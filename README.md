@@ -71,3 +71,25 @@ npm run build
 cd ..
 py -3.11 -m py_compile backend/main.py
 ```
+
+## Deploy On Render
+
+This repo includes `render.yaml` for a two-service Render Blueprint:
+
+- `heartguard-ai-api` - FastAPI backend.
+- `heartguard-ai` - static React/Vite frontend.
+
+Steps:
+
+1. Push this repository to GitHub.
+2. Open Render Dashboard.
+3. Click **New +** > **Blueprint**.
+4. Connect the GitHub repo `harry16102003/heart-guard-ai`.
+5. Render will detect `render.yaml`.
+6. Add `OPENAI_API_KEY` when Render prompts for it, or leave it blank to use the local fallback assistant.
+7. Apply the Blueprint.
+
+After deploy:
+
+- Website: `https://heartguard-ai.onrender.com`
+- API: `https://heartguard-ai-api.onrender.com/api/health`
