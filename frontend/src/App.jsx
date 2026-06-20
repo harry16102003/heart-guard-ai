@@ -136,8 +136,20 @@ function UiIcon({ type }) {
   return <svg {...common}><path d="M12 21c-5-4.35-8-7.3-8-11a4.8 4.8 0 0 1 8-3.4A4.8 4.8 0 0 1 20 10c0 3.7-3 6.65-8 11Z"/></svg>;
 }
 
+const getCurrentRoute = () => {
+  if (typeof window === 'undefined') return '/';
+  const hashRoute = window.location.hash.replace(/^#/, '');
+  if (hashRoute.startsWith('/')) return hashRoute;
+  return window.location.pathname === '/' || window.location.pathname === '/index.html'
+    ? '/'
+    : `${window.location.pathname}${window.location.search}`;
+};
+
+const routeHref = (path) => `#${path}`;
+
 function App() {
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const [route, setRoute] = useState(getCurrentRoute);
+  const [pathname, routeQuery = ''] = route.split('?');
   const isLoginPage = pathname === '/login';
   const isDashboardPage = pathname === '/dashboard';
   const isPatientsPage = pathname === '/patients';
@@ -167,7 +179,7 @@ function App() {
   const [patientRiskFilter, setPatientRiskFilter] = useState('all');
   const [patientSearch, setPatientSearch] = useState(() => {
     if (typeof window === 'undefined') return '';
-    return new URLSearchParams(window.location.search).get('search') || '';
+    return new URLSearchParams(getCurrentRoute().split('?')[1] || '').get('search') || '';
   });
   const [expandedPatientId, setExpandedPatientId] = useState('');
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
@@ -250,12 +262,12 @@ function App() {
     prev_bmi: '',
   });
   const navItems = [
-    { key: 'Dashboard', icon: 'menu-dashboard', href: '/dashboard', active: isDashboardPage },
-    { key: 'Patients', icon: 'menu-patients', href: '/patients', active: isPatientsPage },
-    { key: 'Prediction', icon: 'menu-prediction', href: '/predict', active: isPredictPage },
-    { key: 'Analytics', icon: 'menu-analytics', href: '/analytics', active: isAnalyticsPage },
-    { key: 'AI Assistant', icon: 'menu-ai', href: '/assistant', active: isAssistantPage },
-    { key: 'Emergency Alerts', icon: 'menu-alert', href: '/alerts', active: isAlertsPage },
+    { key: 'Dashboard', icon: 'menu-dashboard', href: routeHref('/dashboard'), active: isDashboardPage },
+    { key: 'Patients', icon: 'menu-patients', href: routeHref('/patients'), active: isPatientsPage },
+    { key: 'Prediction', icon: 'menu-prediction', href: routeHref('/predict'), active: isPredictPage },
+    { key: 'Analytics', icon: 'menu-analytics', href: routeHref('/analytics'), active: isAnalyticsPage },
+    { key: 'AI Assistant', icon: 'menu-ai', href: routeHref('/assistant'), active: isAssistantPage },
+    { key: 'Emergency Alerts', icon: 'menu-alert', href: routeHref('/alerts'), active: isAlertsPage },
   ];
   const [patientRows, setPatientRows] = useState(() => {
     if (typeof window === 'undefined') return demoPatients;
@@ -876,6 +888,23 @@ function App() {
   };
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const syncRoute = () => setRoute(getCurrentRoute());
+    window.addEventListener('hashchange', syncRoute);
+    window.addEventListener('popstate', syncRoute);
+    return () => {
+      window.removeEventListener('hashchange', syncRoute);
+      window.removeEventListener('popstate', syncRoute);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isPatientsPage) {
+      setPatientSearch(new URLSearchParams(routeQuery).get('search') || '');
+    }
+  }, [isPatientsPage, routeQuery]);
+
+  useEffect(() => {
     if (isLoginPage) return;
     fetch(API_URL)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('API not available'))))
@@ -910,7 +939,15 @@ function App() {
   }, [data]);
 
   const goTo = (path) => {
-    if (typeof window !== 'undefined') window.location.href = path;
+    if (typeof window === 'undefined') return;
+    const nextHash = routeHref(path);
+    if (window.location.hash === nextHash) {
+      setRoute(path);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    window.location.hash = path;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const forecastPoints = predictResult?.forecast_points || [];
@@ -2103,7 +2140,7 @@ function App() {
           <a href="#how-it-works">How it works</a>
         </nav>
         <div className="top-actions">
-          <a href="/login" className="login-link">Login</a>
+          <a href={routeHref('/login')} className="login-link">Login</a>
           <button className="primary-btn" onClick={() => goTo('/dashboard')}>Open Dashboard</button>
         </div>
       </header>
