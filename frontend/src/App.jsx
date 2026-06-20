@@ -126,6 +126,10 @@ function UiIcon({ type }) {
   if (type === 'menu-alert') return <svg {...common}><path d="M12 3a5.5 5.5 0 0 1 5.5 5.5V13l2 2v2h-15v-2l2-2V8.5A5.5 5.5 0 0 1 12 3Z"/><path d="M10.2 20a2 2 0 0 0 3.6 0"/></svg>;
   if (type === 'heart') return <svg {...common}><path d="M12 21c-5-4.35-8-7.3-8-11a4.8 4.8 0 0 1 8-3.4A4.8 4.8 0 0 1 20 10c0 3.7-3 6.65-8 11Z"/></svg>;
   if (type === 'search') return <svg {...common}><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>;
+  if (type === 'plus') return <svg {...common}><path d="M12 5v14"/><path d="M5 12h14"/></svg>;
+  if (type === 'edit') return <svg {...common}><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>;
+  if (type === 'upload') return <svg {...common}><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14a2 2 0 0 0 2-2v-3"/><path d="M3 16v3a2 2 0 0 0 2 2"/></svg>;
+  if (type === 'chevron-down') return <svg {...common}><path d="m6 9 6 6 6-6"/></svg>;
   if (type === 'bell') return <svg {...common}><path d="M12 3a5 5 0 0 1 5 5v2.9c0 .7.28 1.37.78 1.87L19 14v1H5v-1l1.22-1.23c.5-.5.78-1.17.78-1.87V8a5 5 0 0 1 5-5Z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>;
   if (type === 'signout') return <svg {...common}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>;
   if (type === 'arrow-right') return <svg {...common}><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>;
@@ -161,18 +165,50 @@ function App() {
   });
   const [loginError, setLoginError] = useState('');
   const [patientRiskFilter, setPatientRiskFilter] = useState('all');
-  const [patientSearch, setPatientSearch] = useState('');
+  const [patientSearch, setPatientSearch] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return new URLSearchParams(window.location.search).get('search') || '';
+  });
+  const [expandedPatientId, setExpandedPatientId] = useState('');
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [addPatientError, setAddPatientError] = useState('');
+  const [editingPatientId, setEditingPatientId] = useState('');
+  const [editPatientError, setEditPatientError] = useState('');
+  const [reportUploadMessage, setReportUploadMessage] = useState('');
+  const [uploadPatient, setUploadPatient] = useState(null);
+  const [selectedReportFiles, setSelectedReportFiles] = useState([]);
   const [newPatient, setNewPatient] = useState({
     name: '',
     age: '',
+    sex: '',
     bmi: '',
     cholesterol: '',
     systolicBp: '',
     diastolicBp: '',
     glucose: '',
     heartRate: '',
+    ef: '',
+    creatinine: '',
+  });
+  const [editPatient, setEditPatient] = useState({
+    id: '',
+    name: '',
+    age: '',
+    sex: '',
+    bmi: '',
+    cholesterol: '',
+    systolicBp: '',
+    diastolicBp: '',
+    glucose: '',
+    heartRate: '',
+    ef: '',
+    creatinine: '',
+    riskScore: '',
+    riskLabel: 'Low',
+    lastVisit: '',
+    smoking: false,
+    diabetes: false,
+    hypertension: false,
   });
   const [dashboardSearch, setDashboardSearch] = useState('');
   const [predictionStep, setPredictionStep] = useState(1);
@@ -269,8 +305,8 @@ function App() {
         .slice()
         .reverse()
         .slice(0, 6)
-        .map((p) => ({
-          key: `${p.id || 'PT-UNK'}-${p.date || ''}-${p.riskScore || 0}`,
+        .map((p, index) => ({
+          key: `${p.id || 'PT-UNK'}-${p.date || ''}-${p.riskScore || 0}-${index}`,
           name: p.name || p.id || 'Predicted case',
           meta: `${p.id || 'PT-UNK'} · Age ${p.age || '--'}`,
           risk: `${p.riskScore || 0}%`,
@@ -363,10 +399,10 @@ function App() {
       id,
       name: newPatient.name.trim(),
       age: newPatient.age.trim(),
-      ageSex: `${newPatient.age.trim()}y · -`,
-      ef: '--',
+      ageSex: `${newPatient.age.trim()}y · ${newPatient.sex.trim() || '-'}`,
+      ef: newPatient.ef.trim() ? `${newPatient.ef.trim()}%` : '--',
       bp: `${newPatient.systolicBp.trim() || '--'}/${newPatient.diastolicBp.trim() || '--'}`,
-      creatinine: '--',
+      creatinine: newPatient.creatinine.trim() || '--',
       riskScore: 0,
       riskLabel: 'Low',
       lastVisit: today,
@@ -374,20 +410,130 @@ function App() {
       cholesterol: newPatient.cholesterol.trim(),
       glucose: newPatient.glucose.trim(),
       heartRate: newPatient.heartRate.trim(),
+      reports: [],
     };
     setPatientRows((prev) => [record, ...prev]);
+    setExpandedPatientId(id);
     setShowAddPatientModal(false);
     setAddPatientError('');
     setNewPatient({
       name: '',
       age: '',
+      sex: '',
       bmi: '',
       cholesterol: '',
       systolicBp: '',
       diastolicBp: '',
       glucose: '',
       heartRate: '',
+      ef: '',
+      creatinine: '',
     });
+  };
+
+  const openEditPatient = (row) => {
+    setEditingPatientId(row.id);
+    setEditPatientError('');
+    setReportUploadMessage('');
+    setEditPatient({
+      id: row.id,
+      name: row.name || '',
+      age: parsePatientAge(row),
+      sex: String(row.ageSex || '').split('·')[1]?.trim() || '',
+      bmi: row.bmi || '',
+      cholesterol: row.cholesterol || '',
+      systolicBp: parseBpValue(row.bp, 0),
+      diastolicBp: parseBpValue(row.bp, 1),
+      glucose: row.glucose || '',
+      heartRate: row.heartRate || '',
+      ef: parsePercentValue(row.ef),
+      creatinine: row.creatinine && row.creatinine !== '--' ? String(row.creatinine) : '',
+      riskScore: row.riskScore ?? '',
+      riskLabel: row.riskLabel || 'Low',
+      lastVisit: row.lastVisit || new Date().toISOString().slice(0, 10),
+      smoking: Boolean(row.smoking),
+      diabetes: Boolean(row.diabetes),
+      hypertension: Boolean(row.hypertension),
+    });
+  };
+
+  const closeEditPatient = () => {
+    setEditingPatientId('');
+    setEditPatientError('');
+  };
+
+  const saveEditedPatient = () => {
+    const cleanField = (value) => String(value ?? '').trim();
+    if (!cleanField(editPatient.name) || !cleanField(editPatient.age)) {
+      setEditPatientError('Name and Age are required');
+      return;
+    }
+    const patientId = editPatient.id || editingPatientId;
+    const score = Number(editPatient.riskScore);
+    const cleanRiskScore = Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : null;
+    const savedPatient = {
+      id: patientId,
+      name: cleanField(editPatient.name),
+      age: cleanField(editPatient.age),
+      ageSex: `${cleanField(editPatient.age)}y · ${cleanField(editPatient.sex) || '-'}`,
+      ef: cleanField(editPatient.ef) ? `${cleanField(editPatient.ef)}%` : '--',
+      bp: `${cleanField(editPatient.systolicBp) || '--'}/${cleanField(editPatient.diastolicBp) || '--'}`,
+      creatinine: cleanField(editPatient.creatinine) || '--',
+      riskLabel: cleanField(editPatient.riskLabel) || 'Low',
+      lastVisit: editPatient.lastVisit || new Date().toISOString().slice(0, 10),
+      bmi: cleanField(editPatient.bmi),
+      cholesterol: cleanField(editPatient.cholesterol),
+      glucose: cleanField(editPatient.glucose),
+      heartRate: cleanField(editPatient.heartRate),
+      smoking: editPatient.smoking,
+      diabetes: editPatient.diabetes,
+      hypertension: editPatient.hypertension,
+    };
+    setPatientRows((prev) =>
+      prev.map((row) =>
+        row.id === patientId
+          ? {
+              ...row,
+              ...savedPatient,
+              riskScore: cleanRiskScore ?? row.riskScore,
+            }
+          : row,
+      ),
+    );
+    if (cleanRiskScore !== null) {
+      setPredictionHistory((prev) =>
+        prev.map((item) =>
+          item.id === patientId
+            ? { ...item, name: savedPatient.name, age: savedPatient.age, riskScore: cleanRiskScore, riskLabel: savedPatient.riskLabel }
+            : item,
+        ),
+      );
+    }
+    setExpandedPatientId(patientId);
+    setReportUploadMessage('Patient changes saved');
+    closeEditPatient();
+  };
+
+  const savePatientReports = () => {
+    if (!uploadPatient || !selectedReportFiles.length) return;
+    const uploadedAt = new Date().toISOString();
+    const reports = selectedReportFiles.map((file) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type || 'report',
+      uploadedAt,
+    }));
+    setPatientRows((prev) =>
+      prev.map((patient) =>
+        patient.id === uploadPatient.id
+          ? { ...patient, reports: [...reports, ...((patient.reports || []))] }
+          : patient,
+      ),
+    );
+    setExpandedPatientId(uploadPatient.id);
+    setReportUploadMessage(`${reports.length} report${reports.length === 1 ? '' : 's'} uploaded for ${uploadPatient.name}`);
+    setUploadPatient(null);
+    setSelectedReportFiles([]);
   };
   const searchFromDashboard = () => {
     const q = dashboardSearch.trim();
@@ -858,6 +1004,7 @@ function App() {
     });
     return groups.map((g) => ({
       label: g.label,
+      patients: g.values.length,
       value: g.values.length ? Math.round(g.values.reduce((a, b) => a + b, 0) / g.values.length) : 0,
     }));
   }, [patientRows]);
@@ -1208,7 +1355,10 @@ function App() {
                   <h1>Patient Management</h1>
                   <p>{filteredPatients.length} patients matching filters</p>
                 </div>
-                <button className="primary-btn add-patient-btn" onClick={() => setShowAddPatientModal(true)}>+ Add Patient</button>
+                <button className="primary-btn add-patient-btn" onClick={() => setShowAddPatientModal(true)}>
+                  <UiIcon type="plus" />
+                  <span>Add Patient</span>
+                </button>
               </header>
 
               <section className="patients-filter-bar dash-panel">
@@ -1246,18 +1396,78 @@ function App() {
                 </div>
                 <div className="patients-table-body">
                   {filteredPatients.length ? (
-                    filteredPatients.map((row) => (
-                      <article className="patients-row" key={row.id}>
-                        <div className="patient-col-main"><strong>{row.name}</strong><small>{row.id}</small></div>
-                        <span>{row.ageSex}</span>
-                        <span>{row.ef}</span>
-                        <span>{row.bp}</span>
-                        <span>{row.creatinine}</span>
-                        <span className={`risk-chip ${row.riskLabel.toLowerCase()}`}>{row.riskScore}% · {row.riskLabel}</span>
-                        <span className="patient-visit">{row.lastVisit}</span>
-                        <span className="patient-expand">⌄</span>
-                      </article>
-                    ))
+                    filteredPatients.map((row) => {
+                      const isExpanded = expandedPatientId === row.id;
+                      const reports = row.reports || [];
+                      return (
+                        <article className={`patient-record ${isExpanded ? 'expanded' : ''}`} key={row.id}>
+                          <button
+                            type="button"
+                            className="patients-row"
+                            aria-expanded={isExpanded}
+                            onClick={() => {
+                              setExpandedPatientId((current) => (current === row.id ? '' : row.id));
+                              setReportUploadMessage('');
+                            }}
+                          >
+                            <div className="patient-col-main"><strong>{row.name}</strong><small>{row.id}</small></div>
+                            <span data-label="Age / Sex">{row.ageSex}</span>
+                            <span data-label="EF">{row.ef}</span>
+                            <span data-label="BP">{row.bp}</span>
+                            <span data-label="Creatinine">{row.creatinine}</span>
+                            <span data-label="Risk" className={`risk-chip ${String(row.riskLabel || 'low').toLowerCase()}`}>{row.riskScore}% · {row.riskLabel}</span>
+                            <span data-label="Last Visit" className="patient-visit">{row.lastVisit}</span>
+                            <span className="patient-expand"><UiIcon type="chevron-down" /></span>
+                          </button>
+                          {isExpanded ? (
+                            <div className="patient-detail-panel">
+                              <div className="patient-detail-grid">
+                                <div><span>BMI</span><strong>{row.bmi || '--'}</strong></div>
+                                <div><span>Cholesterol</span><strong>{row.cholesterol ? `${row.cholesterol} mg/dL` : '--'}</strong></div>
+                                <div><span>Glucose</span><strong>{row.glucose ? `${row.glucose} mg/dL` : '--'}</strong></div>
+                                <div><span>Heart Rate</span><strong>{row.heartRate ? `${row.heartRate} bpm` : '--'}</strong></div>
+                                <div><span>Smoking</span><strong>{row.smoking ? 'Yes' : 'No'}</strong></div>
+                                <div><span>Diabetes</span><strong>{row.diabetes ? 'Yes' : 'No'}</strong></div>
+                                <div><span>Hypertension</span><strong>{row.hypertension ? 'Yes' : 'No'}</strong></div>
+                                <div><span>Predicted readmission</span><strong>{row.predictedDays ? `~${row.predictedDays} days` : '--'}</strong></div>
+                              </div>
+                              <div className="patient-detail-actions">
+                                <button type="button" className="primary-btn patient-action-btn" onClick={() => openEditPatient(row)}>
+                                  <UiIcon type="edit" />
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="ghost-btn patient-action-btn patient-upload-btn"
+                                  onClick={() => {
+                                    setUploadPatient(row);
+                                    setSelectedReportFiles([]);
+                                    setReportUploadMessage('');
+                                  }}
+                                >
+                                  <UiIcon type="upload" />
+                                  <span>Upload Reports</span>
+                                </button>
+                              </div>
+                              {reports.length ? (
+                                <div className="patient-report-list">
+                                  <strong>Reports</strong>
+                                  {reports.slice(0, 3).map((report) => (
+                                    <span key={`${report.name}-${report.uploadedAt}`}>
+                                      {report.name}
+                                      <small>{new Date(report.uploadedAt).toLocaleDateString()}</small>
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
+                              {reportUploadMessage && reportUploadMessage.includes(row.name) ? (
+                                <p className="patient-upload-status">{reportUploadMessage}</p>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </article>
+                      );
+                    })
                   ) : (
                     <div className="patients-empty-state">
                       <p>No patients yet. Add a patient to start monitoring.</p>
@@ -1284,15 +1494,85 @@ function App() {
                     <div className="patient-modal-grid">
                       <input value={newPatient.name} onChange={(e) => setNewPatient((p) => ({ ...p, name: e.target.value }))} placeholder="Name" />
                       <input value={newPatient.age} onChange={(e) => setNewPatient((p) => ({ ...p, age: e.target.value }))} placeholder="Age" />
+                      <input value={newPatient.sex} onChange={(e) => setNewPatient((p) => ({ ...p, sex: e.target.value }))} placeholder="Sex (M/F)" />
                       <input value={newPatient.bmi} onChange={(e) => setNewPatient((p) => ({ ...p, bmi: e.target.value }))} placeholder="BMI" />
                       <input value={newPatient.cholesterol} onChange={(e) => setNewPatient((p) => ({ ...p, cholesterol: e.target.value }))} placeholder="Cholesterol" />
                       <input value={newPatient.systolicBp} onChange={(e) => setNewPatient((p) => ({ ...p, systolicBp: e.target.value }))} placeholder="Systolic BP" />
                       <input value={newPatient.diastolicBp} onChange={(e) => setNewPatient((p) => ({ ...p, diastolicBp: e.target.value }))} placeholder="Diastolic BP" />
+                      <input value={newPatient.ef} onChange={(e) => setNewPatient((p) => ({ ...p, ef: e.target.value }))} placeholder="Ejection Fraction" />
+                      <input value={newPatient.creatinine} onChange={(e) => setNewPatient((p) => ({ ...p, creatinine: e.target.value }))} placeholder="Creatinine" />
                       <input value={newPatient.glucose} onChange={(e) => setNewPatient((p) => ({ ...p, glucose: e.target.value }))} placeholder="Glucose" />
                       <input value={newPatient.heartRate} onChange={(e) => setNewPatient((p) => ({ ...p, heartRate: e.target.value }))} placeholder="Heart Rate" />
                     </div>
                     {addPatientError ? <p className="add-patient-error">{addPatientError}</p> : null}
                     <button className="primary-btn patient-save-btn" onClick={saveNewPatient}>Save patient</button>
+                  </div>
+                </div>
+              ) : null}
+              {editingPatientId ? (
+                <div className="patient-modal-overlay">
+                  <div className="patient-modal-card edit-patient-modal" role="dialog" aria-modal="true" aria-labelledby="edit-patient-title">
+                    <div className="patient-modal-head">
+                      <div><h3 id="edit-patient-title">Edit Patient</h3><p>{editPatient.id} · {editPatient.name}</p></div>
+                      <button onClick={closeEditPatient} aria-label="Close edit patient">×</button>
+                    </div>
+                    <div className="edit-patient-body">
+                      <div className="patient-modal-grid">
+                        <label className="patient-field"><span>Name</span><input value={editPatient.name} onChange={(e) => setEditPatient((p) => ({ ...p, name: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Age</span><input value={editPatient.age} onChange={(e) => setEditPatient((p) => ({ ...p, age: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Ejection Fraction (%)</span><input value={editPatient.ef} onChange={(e) => setEditPatient((p) => ({ ...p, ef: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Systolic BP</span><input value={editPatient.systolicBp} onChange={(e) => setEditPatient((p) => ({ ...p, systolicBp: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Diastolic BP</span><input value={editPatient.diastolicBp} onChange={(e) => setEditPatient((p) => ({ ...p, diastolicBp: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Serum Creatinine</span><input value={editPatient.creatinine} onChange={(e) => setEditPatient((p) => ({ ...p, creatinine: e.target.value }))} /></label>
+                        <label className="patient-field"><span>BMI</span><input value={editPatient.bmi} onChange={(e) => setEditPatient((p) => ({ ...p, bmi: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Cholesterol</span><input value={editPatient.cholesterol} onChange={(e) => setEditPatient((p) => ({ ...p, cholesterol: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Glucose</span><input value={editPatient.glucose} onChange={(e) => setEditPatient((p) => ({ ...p, glucose: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Heart Rate</span><input value={editPatient.heartRate} onChange={(e) => setEditPatient((p) => ({ ...p, heartRate: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Risk Score</span><input value={editPatient.riskScore} onChange={(e) => setEditPatient((p) => ({ ...p, riskScore: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Risk Label</span><input value={editPatient.riskLabel} onChange={(e) => setEditPatient((p) => ({ ...p, riskLabel: e.target.value }))} /></label>
+                        <label className="patient-field"><span>Last Visit</span><input type="date" value={editPatient.lastVisit} onChange={(e) => setEditPatient((p) => ({ ...p, lastVisit: e.target.value }))} /></label>
+                      </div>
+                      <div className="patient-modal-toggles">
+                        <label><input type="checkbox" checked={editPatient.smoking} onChange={(e) => setEditPatient((p) => ({ ...p, smoking: e.target.checked }))} />Smoking</label>
+                        <label><input type="checkbox" checked={editPatient.diabetes} onChange={(e) => setEditPatient((p) => ({ ...p, diabetes: e.target.checked }))} />Diabetes</label>
+                        <label><input type="checkbox" checked={editPatient.hypertension} onChange={(e) => setEditPatient((p) => ({ ...p, hypertension: e.target.checked }))} />Hypertension</label>
+                      </div>
+                    </div>
+                    {editPatientError ? <p className="add-patient-error">{editPatientError}</p> : null}
+                    <div className="patient-modal-actions">
+                      <button className="ghost-btn" onClick={closeEditPatient}>Cancel</button>
+                      <button className="primary-btn" onClick={saveEditedPatient}>Save changes</button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              {uploadPatient ? (
+                <div className="patient-modal-overlay">
+                  <div className="patient-modal-card report-upload-modal" role="dialog" aria-modal="true" aria-labelledby="upload-report-title">
+                    <div className="patient-modal-head">
+                      <div><h3 id="upload-report-title">Upload Reports</h3><p>{uploadPatient.id} · {uploadPatient.name}</p></div>
+                      <button onClick={() => setUploadPatient(null)} aria-label="Close report upload">×</button>
+                    </div>
+                    <label className="report-drop-zone">
+                      <UiIcon type="upload" />
+                      <strong>Click to upload or drag files here</strong>
+                      <span>PDF, JPG, PNG · ECG, Echo, Labs, Discharge summary</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt,.csv"
+                        onChange={(event) => setSelectedReportFiles(Array.from(event.target.files || []))}
+                      />
+                    </label>
+                    {selectedReportFiles.length ? (
+                      <div className="selected-report-files">
+                        {selectedReportFiles.map((file) => <span key={`${file.name}-${file.size}`}>{file.name}</span>)}
+                      </div>
+                    ) : null}
+                    <div className="patient-modal-actions">
+                      <button className="ghost-btn" onClick={() => setUploadPatient(null)}>Cancel</button>
+                      <button className="primary-btn" disabled={!selectedReportFiles.length} onClick={savePatientReports}>Save reports</button>
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -1521,11 +1801,17 @@ function App() {
                   <div className="age-bar-chart">
                     {ageRiskGroups.map((row) => (
                       <div className="age-bar" key={row.label}>
-                        <span style={{ height: `${Math.max(8, row.value)}%` }} />
+                        <div className="age-bar-pair">
+                          <span className="patient-count-bar" style={{ height: `${Math.max(8, row.patients * 13)}%` }} title={`${row.patients} patients`} />
+                          <span className="risk-score-bar" style={{ height: `${Math.max(8, row.value)}%` }} title={`${row.value}% average risk`} />
+                        </div>
                         <small>{row.label}</small>
-                        <strong>{row.value}%</strong>
                       </div>
                     ))}
+                  </div>
+                  <div className="age-chart-legend">
+                    <span><i className="legend-dot admissions" />Patients</span>
+                    <span><i className="legend-dot readmissions" />Average risk</span>
                   </div>
                 </article>
                 <article className="dash-panel">
