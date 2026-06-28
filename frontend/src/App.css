@@ -1867,6 +1867,67 @@ main { max-width: 1520px; margin: 52px auto 0; }
   width: min(640px, calc(100vw - 36px));
 }
 
+.prediction-history-modal {
+  width: min(840px, calc(100vw - 36px));
+}
+
+.prediction-history-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.prediction-history-item {
+  border: 1px solid rgba(68, 112, 136, 0.36);
+  border-radius: 18px;
+  background: rgba(7, 35, 54, 0.72);
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+}
+
+.prediction-history-item strong {
+  display: block;
+  color: #f2f9ff;
+  font-size: 18px;
+}
+
+.prediction-history-item strong span {
+  color: #ff8a1e;
+}
+
+.prediction-history-item p {
+  margin: 5px 0 0;
+  color: #8eaec3;
+  font-size: 14px;
+}
+
+.prediction-history-item button {
+  border: 0;
+  background: transparent;
+  color: #18c9f1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.prediction-history-empty {
+  border: 1px dashed rgba(68, 112, 136, 0.35);
+  border-radius: 18px;
+  background: rgba(8, 34, 52, 0.52);
+  padding: 24px;
+  text-align: center;
+}
+
+.prediction-history-empty p {
+  margin: 0 0 14px;
+  color: #9bb7c9;
+}
+
 .report-drop-zone {
   min-height: 168px;
   border: 1px dashed rgba(61, 124, 153, 0.48);
@@ -2130,7 +2191,53 @@ main { max-width: 1520px; margin: 52px auto 0; }
 .predict-result-top .muted { color: #8db0c6; letter-spacing: 2px; font-size: 12px; margin: 0; }
 .predict-result-top h2 { margin: 4px 0 8px; color: #ff7f1e; font-size: 36px; }
 .predict-result-top h3 { margin: 2px 0 14px; font-size: 30px; }
-.predict-result-actions { display: flex; gap: 10px; }
+.predict-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.result-action-btn {
+  min-width: 154px;
+  min-height: 46px;
+  border: 1px solid rgba(72, 123, 150, 0.46);
+  border-radius: 14px;
+  background: rgba(6, 31, 49, 0.72);
+  color: #eaf8ff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  padding: 11px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+  box-shadow: inset 0 1px 0 rgba(176, 228, 251, 0.06);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.result-action-btn:hover {
+  border-color: rgba(24, 194, 238, 0.78);
+  background: rgba(10, 49, 72, 0.88);
+  transform: translateY(-1px);
+}
+
+.result-action-btn.primary {
+  border-color: #18bde8;
+  background: #18bde8;
+  color: #052234;
+}
+
+.result-action-btn.primary:hover {
+  background: #31c8ed;
+}
+
+.result-action-btn.secondary {
+  color: #b8d2e2;
+}
 .trajectory-badge {
   display: inline-block;
   margin-bottom: 12px;
@@ -2240,6 +2347,141 @@ main { max-width: 1520px; margin: 52px auto 0; }
 .delta-card h5 small { color: #8caec3; font-weight: 400; }
 .delta-card em { font-style: normal; color: #ff8a1e; font-weight: 600; }
 
+.diet-plan-card {
+  margin-top: 14px;
+}
+
+.diet-plan-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.diet-plan-head h4 {
+  margin-bottom: 6px;
+}
+
+.diet-plan-content {
+  margin-top: 18px;
+}
+
+.diet-intro {
+  font-size: 17px !important;
+  line-height: 1.55 !important;
+}
+
+.diet-targets {
+  margin: 20px 0 24px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.diet-targets div,
+.meal-plan-grid section,
+.diet-guidance-grid section,
+.urgent-care {
+  border: 1px solid rgba(68, 112, 136, 0.34);
+  border-radius: 18px;
+  background: rgba(8, 39, 59, 0.54);
+  padding: 16px;
+}
+
+.diet-targets span {
+  display: block;
+  color: #8fc0d9;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.diet-targets strong {
+  color: #f2fbff;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.diet-plan-card h5 {
+  margin: 18px 0 12px;
+  color: #eaf8ff;
+  font-size: 17px;
+}
+
+.meal-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.meal-plan-grid h6 {
+  margin: 0 0 10px;
+  color: #18c9f1;
+  font-size: 16px;
+}
+
+.meal-plan-grid ul,
+.diet-guidance-grid ul,
+.urgent-care ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.meal-plan-grid li,
+.diet-guidance-grid li,
+.urgent-care li {
+  margin: 8px 0;
+  line-height: 1.42;
+}
+
+.diet-guidance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.diet-guidance-grid .foods-avoid {
+  border-color: rgba(255, 134, 33, 0.55);
+  background: rgba(48, 34, 25, 0.46);
+}
+
+.diet-guidance-grid .foods-avoid h5 {
+  color: #ff8a1e;
+}
+
+.diet-guidance-grid .lifestyle-tips {
+  border-color: rgba(24, 201, 241, 0.45);
+  background: rgba(4, 52, 64, 0.44);
+}
+
+.diet-guidance-grid .lifestyle-tips h5 {
+  color: #18d7ef;
+}
+
+.urgent-care {
+  margin-top: 16px;
+  border-color: rgba(255, 55, 87, 0.55);
+  background: rgba(55, 18, 35, 0.44);
+}
+
+.urgent-care h5 {
+  color: #ff3757;
+}
+
+.urgent-care ul {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+}
+
+.diet-disclaimer {
+  margin-top: 18px !important;
+  font-size: 12px !important;
+  font-style: italic;
+}
+
 @media (max-width: 1200px) {
   .page { padding: 0 16px 24px; }
   .topbar { height: auto; padding: 14px 16px; flex-wrap: wrap; gap: 12px; }
@@ -2286,6 +2528,15 @@ main { max-width: 1520px; margin: 52px auto 0; }
   .assistant-input-row { grid-template-columns: 1fr; }
   .alerts-row { grid-template-columns: 44px 1fr; gap: 10px; }
   .alerts-risk, .alerts-review { grid-column: 2; justify-self: start; }
+  .predict-result-top,
+  .predict-result-grid,
+  .diet-guidance-grid {
+    grid-template-columns: 1fr;
+  }
+  .diet-targets,
+  .meal-plan-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -2368,5 +2619,21 @@ main { max-width: 1520px; margin: 52px auto 0; }
   .patient-modal-card {
     max-height: calc(100vh - 28px);
     overflow: auto;
+  }
+
+  .prediction-history-item,
+  .diet-plan-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .diet-targets,
+  .meal-plan-grid,
+  .urgent-care ul {
+    grid-template-columns: 1fr;
+  }
+
+  .predict-result-actions {
+    flex-direction: column;
   }
 }

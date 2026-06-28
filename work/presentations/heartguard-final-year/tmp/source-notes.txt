@@ -1,0 +1,3 @@
+Deck generated for HeartGuard final year B.E. Computer Engineering viva.
+Research context used: Allam et al. 2018 arXiv paper on 30-day heart failure readmission prediction; Washington Post summary of AHA 2025 cardiovascular statistics.
+Dashboard and prediction screenshots are professionally designed mock screens because no real screenshots were supplied.

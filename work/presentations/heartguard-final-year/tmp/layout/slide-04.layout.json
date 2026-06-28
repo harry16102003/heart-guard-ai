@@ -1,0 +1,782 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/5fnzfr",
+    "id": "5fnzfr",
+    "slide": 4,
+    "layoutId": "571f66eb-2829-4e0a-9860-e72c9ebacda6",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "7a274a4f-a56a-4d01-adfd-0bf8635c9e81",
+    "masterLayoutName": "Master",
+    "backgroundColor": "#F8FCFF",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Aptos",
+      "Aptos Display"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "571f66eb-2829-4e0a-9860-e72c9ebacda6",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "7a274a4f-a56a-4d01-adfd-0bf8635c9e81",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "7a274a4f-a56a-4d01-adfd-0bf8635c9e81",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/3ylc7u54",
+      "id": "1",
+      "bbox": [
+        0,
+        0,
+        1280,
+        12
+      ],
+      "geometry": "rect",
+      "fillColor": "#0B6EFD",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/sji5snel",
+      "id": "2",
+      "bbox": [
+        0,
+        682,
+        1280,
+        38
+      ],
+      "geometry": "rect",
+      "fillColor": "#0B2559",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/h4byhgn2",
+      "id": "3",
+      "bbox": [
+        58,
+        690,
+        260,
+        20
+      ],
+      "geometry": "rect",
+      "text": "Gap Analysis",
+      "textPreview": "Gap Analysis",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "fontSize": 12,
+        "typeface": "Aptos",
+        "color": "#FFFFFF",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Gap Analysis"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Gap Analysis",
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "typeface": "Aptos",
+            "color": "#FFFFFF",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Gap Analysis",
+              "fontSize": 12,
+              "typeface": "Aptos",
+              "color": "#FFFFFF",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/a5gbq1or",
+      "id": "4",
+      "bbox": [
+        1184,
+        689,
+        48,
+        20
+      ],
+      "geometry": "rect",
+      "text": "04",
+      "textPreview": "04",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "fontSize": 12,
+        "typeface": "Aptos",
+        "color": "#FFFFFF",
+        "bold": true,
+        "alignment": "right",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "04"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "04",
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "typeface": "Aptos",
+            "color": "#FFFFFF",
+            "bold": true,
+            "alignment": "right"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "04",
+              "fontSize": 12,
+              "typeface": "Aptos",
+              "color": "#FFFFFF",
+              "bold": true,
+              "alignment": "right"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/3m94fu18",
+      "id": "5",
+      "bbox": [
+        58,
+        42,
+        900,
+        52
+      ],
+      "geometry": "rect",
+      "text": "Existing System",
+      "textPreview": "Existing System",
+      "resolvedFontSize": 36,
+      "resolvedTextStyle": {
+        "fontSize": 36,
+        "typeface": "Aptos Display",
+        "color": "#0B2559",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Existing System"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Existing System",
+          "resolvedTextStyle": {
+            "fontSize": 36,
+            "typeface": "Aptos Display",
+            "color": "#0B2559",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Existing System",
+              "fontSize": 36,
+              "typeface": "Aptos Display",
+              "color": "#0B2559",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s72x4nap",
+      "id": "6",
+      "bbox": [
+        58,
+        104,
+        250,
+        1
+      ],
+      "geometry": "line",
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "#2CB7D5",
+      "lineWidth": 3
+    },
+    {
+      "order": 7,
+      "kind": "table",
+      "scope": "slide",
+      "aid": "tb/0z61032l",
+      "id": "7",
+      "bbox": [
+        90,
+        150,
+        1060,
+        360
+      ],
+      "text": "Aspect | Existing Practice | Limitation\nMonitoring | Manual checkups and reports | Difficult for large patient volume\nAnalysis | Doctor reviews each parameter | Time-consuming and subjective\nErrors | Depends on human interpretation | Missed early warning patterns\nInsights | Reactive treatment after symptoms | Limited predictive capability",
+      "textPreview": "Aspect | Existing Practice | Limitation | Monitoring | Manual checkups and reports | Difficult for large patient volume | Analysis | Doct...",
+      "rows": 5,
+      "cols": 3,
+      "cells": [
+        {
+          "index": 1,
+          "row": 1,
+          "column": 1,
+          "bbox": [
+            90,
+            150,
+            353.33,
+            72
+          ],
+          "text": "Aspect",
+          "textPreview": "Aspect",
+          "fillColor": "#0B2559",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Aspect",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Aspect"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "row": 1,
+          "column": 2,
+          "bbox": [
+            443.33,
+            150,
+            353.33,
+            72
+          ],
+          "text": "Existing Practice",
+          "textPreview": "Existing Practice",
+          "fillColor": "#0B2559",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Existing Practice",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Existing Practice"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "row": 1,
+          "column": 3,
+          "bbox": [
+            796.67,
+            150,
+            353.33,
+            72
+          ],
+          "text": "Limitation",
+          "textPreview": "Limitation",
+          "fillColor": "#0B2559",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Limitation",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Limitation"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "row": 2,
+          "column": 1,
+          "bbox": [
+            90,
+            222,
+            353.33,
+            72
+          ],
+          "text": "Monitoring",
+          "textPreview": "Monitoring",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Monitoring",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Monitoring"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "row": 2,
+          "column": 2,
+          "bbox": [
+            443.33,
+            222,
+            353.33,
+            72
+          ],
+          "text": "Manual checkups and reports",
+          "textPreview": "Manual checkups and reports",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Manual checkups and reports",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Manual checkups and reports"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "row": 2,
+          "column": 3,
+          "bbox": [
+            796.67,
+            222,
+            353.33,
+            72
+          ],
+          "text": "Difficult for large patient volume",
+          "textPreview": "Difficult for large patient volume",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Difficult for large patient volume",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Difficult for large patient volume"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "row": 3,
+          "column": 1,
+          "bbox": [
+            90,
+            294,
+            353.33,
+            72
+          ],
+          "text": "Analysis",
+          "textPreview": "Analysis",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Analysis",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Analysis"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "row": 3,
+          "column": 2,
+          "bbox": [
+            443.33,
+            294,
+            353.33,
+            72
+          ],
+          "text": "Doctor reviews each parameter",
+          "textPreview": "Doctor reviews each parameter",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Doctor reviews each parameter",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Doctor reviews each parameter"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "row": 3,
+          "column": 3,
+          "bbox": [
+            796.67,
+            294,
+            353.33,
+            72
+          ],
+          "text": "Time-consuming and subjective",
+          "textPreview": "Time-consuming and subjective",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Time-consuming and subjective",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Time-consuming and subjective"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "row": 4,
+          "column": 1,
+          "bbox": [
+            90,
+            366,
+            353.33,
+            72
+          ],
+          "text": "Errors",
+          "textPreview": "Errors",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Errors",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Errors"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "row": 4,
+          "column": 2,
+          "bbox": [
+            443.33,
+            366,
+            353.33,
+            72
+          ],
+          "text": "Depends on human interpretation",
+          "textPreview": "Depends on human interpretation",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Depends on human interpretation",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Depends on human interpretation"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "row": 4,
+          "column": 3,
+          "bbox": [
+            796.67,
+            366,
+            353.33,
+            72
+          ],
+          "text": "Missed early warning patterns",
+          "textPreview": "Missed early warning patterns",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Missed early warning patterns",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Missed early warning patterns"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "row": 5,
+          "column": 1,
+          "bbox": [
+            90,
+            438,
+            353.33,
+            72
+          ],
+          "text": "Insights",
+          "textPreview": "Insights",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Insights",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Insights"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "row": 5,
+          "column": 2,
+          "bbox": [
+            443.33,
+            438,
+            353.33,
+            72
+          ],
+          "text": "Reactive treatment after symptoms",
+          "textPreview": "Reactive treatment after symptoms",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Reactive treatment after symptoms",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Reactive treatment after symptoms"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "row": 5,
+          "column": 3,
+          "bbox": [
+            796.67,
+            438,
+            353.33,
+            72
+          ],
+          "text": "Limited predictive capability",
+          "textPreview": "Limited predictive capability",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Limited predictive capability",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Limited predictive capability"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/a1gvy90j",
+      "id": "8",
+      "bbox": [
+        145,
+        548,
+        980,
+        32
+      ],
+      "geometry": "rect",
+      "text": "Conclusion: existing workflows are clinically valuable but need predictive support.",
+      "textPreview": "Conclusion: existing workflows are clinically valuable but need predictive support.",
+      "resolvedFontSize": 22,
+      "resolvedTextStyle": {
+        "fontSize": 22,
+        "typeface": "Aptos",
+        "color": "#0B6EFD",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Conclusion: existing workflows are clinically valuable but need predictive support."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Conclusion: existing workflows are clinically valuable but need predictive support.",
+          "resolvedTextStyle": {
+            "fontSize": 22,
+            "typeface": "Aptos",
+            "color": "#0B6EFD",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Conclusion: existing workflows are clinically valuable but need predictive support.",
+              "fontSize": 22,
+              "typeface": "Aptos",
+              "color": "#0B6EFD",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

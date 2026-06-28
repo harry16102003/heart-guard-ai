@@ -78,28 +78,86 @@ const demoPatients = [
 ];
 
 const demoPredictionSeed = demoPatients.slice(0, 6);
-const demoDataVersion = 'heartguard-demo-v3';
+const demoDataVersion = 'heartguard-demo-v4';
+
+function makeStoredPrediction(patient, index = 0) {
+  const riskScore = Number(patient.riskScore || 0);
+  const predictedDays = Math.max(14, Math.round(92 - riskScore * 0.6));
+  const riskLabel = patient.riskLabel || (riskScore >= 60 ? 'High' : riskScore >= 40 ? 'Moderate' : 'Low');
+  const formSnapshot = {
+    age: patient.age || '',
+    bmi: patient.bmi || '',
+    systolic_bp: String(patient.bp || '').split('/')[0] || '',
+    diastolic_bp: String(patient.bp || '').split('/')[1] || '',
+    cholesterol: patient.cholesterol || '',
+    glucose: patient.glucose || '',
+    heart_rate: patient.heartRate || '',
+    ejection_fraction: String(patient.ef || '').replace('%', ''),
+    serum_creatinine: patient.creatinine || '',
+    activity_hours: riskScore >= 60 ? '2' : '5',
+    smoking: Boolean(patient.smoking || riskScore > 60),
+    diabetes: Boolean(patient.diabetes || Number(patient.glucose || 0) > 125),
+    hypertension: Boolean(patient.hypertension || Number(String(patient.bp || '').split('/')[0] || 0) >= 140),
+    previous_visit_enabled: true,
+    days_since_last_visit: '30',
+    prev_ejection_fraction: String(Number(String(patient.ef || '').replace('%', '') || 45) + 2),
+    prev_serum_creatinine: String(Math.max(0.7, Number(patient.creatinine || 1) - 0.1).toFixed(1)),
+    prev_systolic_bp: String(Math.max(110, Number(String(patient.bp || '').split('/')[0] || 130) - 4)),
+    prev_cholesterol: String(Math.max(150, Number(patient.cholesterol || 190) - 8)),
+    prev_glucose: String(Math.max(80, Number(patient.glucose || 110) - 5)),
+    prev_bmi: String(Math.max(18, Number(patient.bmi || 26) - 0.4).toFixed(1)),
+  };
+  const result = {
+    risk_score: riskScore,
+    risk_category: riskLabel,
+    predicted_days: predictedDays,
+    top_factors: [
+      { name: 'High systolic blood pressure', weight: Math.min(26, Math.max(8, Math.round(Number(formSnapshot.systolic_bp || 120) / 8))) },
+      { name: 'Ejection fraction burden', weight: Math.max(7, Math.round((60 - Number(formSnapshot.ejection_fraction || 50)) / 2)) },
+      { name: 'Metabolic risk profile', weight: Number(formSnapshot.glucose || 0) > 125 ? 12 : 7 },
+      { name: 'Deteriorating trajectory vs last visit', weight: riskScore >= 50 ? 15 : 6 },
+    ],
+    summary: `Model estimates a ${riskScore}% probability of 30-day readmission for ${patient.name}.`,
+    recommendations: [
+      'Shorten follow-up interval and reassess vitals within 1-2 weeks.',
+      'Tighten BP control; target <130/80 mmHg.',
+      'Repeat renal and metabolic panel in follow-up.',
+      'Encourage moderate activity within cardiac tolerance.',
+      ...(formSnapshot.smoking ? ['Enroll in structured smoking cessation program.'] : []),
+      ...(formSnapshot.diabetes ? ['Optimize glycemic control and monitor HbA1c.'] : []),
+    ].slice(0, 6),
+    trajectory: { enabled: true, direction: riskScore >= 55 ? 'worsening' : 'stable', pts_per_day: riskScore >= 55 ? 0.18 : 0.03 },
+    forecast_points: [
+      { label: '60d ago', value: Math.max(1, riskScore - 10) },
+      { label: 'Today', value: riskScore },
+      { label: '+7d', value: Math.min(99, riskScore + 1) },
+      { label: '+14d', value: Math.min(99, riskScore + 2) },
+      { label: '+30d', value: Math.min(99, riskScore + 4) },
+      { label: '+45d', value: Math.min(99, riskScore + 5) },
+      { label: '+60d', value: Math.min(99, riskScore + 6) },
+    ],
+  };
+  return {
+    id: patient.id,
+    name: patient.name,
+    age: patient.age,
+    date: patient.lastVisit || '2026-06-05',
+    generatedAt: new Date(Date.now() - index * 3600_000).toISOString(),
+    riskScore,
+    riskLabel,
+    predictedDays,
+    patientSnapshot: patient,
+    formSnapshot,
+    result,
+  };
+}
 
 const demoPredictions = [
   ...Array.from({ length: 32 }, (_, index) => {
     const patient = demoPatients[(index + 6) % demoPatients.length];
-    return {
-      id: patient.id,
-      name: patient.name,
-      age: patient.age,
-      date: '2026-06-05',
-      riskScore: patient.riskScore,
-      riskLabel: patient.riskLabel,
-    };
+    return makeStoredPrediction(patient, index);
   }),
-  ...demoPredictionSeed.map((patient) => ({
-    id: patient.id,
-    name: patient.name,
-    age: patient.age,
-    date: '2026-06-05',
-    riskScore: patient.riskScore,
-    riskLabel: patient.riskLabel,
-  })),
+  ...demoPredictionSeed.map((patient, index) => makeStoredPrediction(patient, index + 32)),
 ];
 
 function FeatureIcon({ type }) {
@@ -227,6 +285,7 @@ function App() {
   const [predictLoading, setPredictLoading] = useState(false);
   const [predictResult, setPredictResult] = useState(null);
   const [reportPatient, setReportPatient] = useState(null);
+  const [predictionHistoryPatient, setPredictionHistoryPatient] = useState(null);
   const [predictError, setPredictError] = useState('');
   const [predictionPatientQuery, setPredictionPatientQuery] = useState('');
   const [selectedPredictionPatientId, setSelectedPredictionPatientId] = useState('');
@@ -388,6 +447,13 @@ function App() {
       .slice(0, 6);
   }, [patientRows, predictionPatientQuery]);
   const canUsePreviousVisit = Boolean(selectedPredictionPatient);
+  const predictionHistoryForPatient = useMemo(() => {
+    if (!predictionHistoryPatient) return [];
+    return predictionHistory
+      .filter((item) => item.id === predictionHistoryPatient.id)
+      .slice()
+      .sort((a, b) => new Date(b.generatedAt || b.date || 0) - new Date(a.generatedAt || a.date || 0));
+  }, [predictionHistory, predictionHistoryPatient]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -613,6 +679,87 @@ function App() {
     setPredictionStep((s) => Math.min(5, s + 1));
   };
 
+  const buildDietPlan = (result, patient, form) => {
+    const patientName = patient?.name || 'Patient';
+    const riskLabel = result?.risk_category || patient?.riskLabel || 'Low';
+    const hasDiabetes = Boolean(form?.diabetes) || Number(form?.glucose || patient?.glucose || 0) >= 126;
+    const hasHypertension = Boolean(form?.hypertension) || Number(form?.systolic_bp || String(patient?.bp || '').split('/')[0] || 0) >= 140;
+    const activeSmoking = Boolean(form?.smoking) || Boolean(patient?.smoking);
+    const lowEf = Number(form?.ejection_fraction || String(patient?.ef || '').replace('%', '') || 50) < 45;
+    const highBmi = Number(form?.bmi || patient?.bmi || 0) >= 30;
+    const renalWatch = Number(form?.serum_creatinine || patient?.creatinine || 0) >= 1.4;
+    const calorieTarget = highBmi ? '1600-1800 kcal for gradual weight management' : '1800-2000 kcal adjusted to activity and clinician advice';
+    return {
+      intro: `${patientName}, your AI-generated preventive plan focuses on ${[
+        hasDiabetes ? 'controlled carbohydrates' : 'steady complex carbohydrates',
+        hasHypertension || lowEf ? 'low sodium meals' : 'heart-friendly sodium moderation',
+        highBmi ? 'weight management' : 'cardiac recovery',
+        activeSmoking ? 'smoking cessation support' : '',
+      ].filter(Boolean).join(', ')} while accounting for ${riskLabel.toLowerCase()} readmission risk.`,
+      targets: [
+        ['Sodium', hasHypertension || lowEf ? '<1500 mg/day' : '<2000 mg/day'],
+        ['Fluids', lowEf || renalWatch ? '1.5-2.0 L/day; monitor swelling' : '2.0 L/day unless restricted'],
+        ['Calories', calorieTarget],
+        ['Protein', renalWatch ? '60-70 g/day; review renal status' : '70-85 g/day from lean sources'],
+        ['Saturated Fat', '<10 g/day and avoid trans fats'],
+        ['Added Sugar', hasDiabetes ? '<20 g/day' : '<25 g/day'],
+      ],
+      meals: [
+        ['Breakfast', ['Oats or dal chilla with vegetables and no added sugar.', 'Low-fat curd or Greek yogurt with berries.', 'Unsweetened tea, coffee, or warm water.']],
+        ['Mid-morning', ['One small fruit such as apple, orange, guava, or pear.', 'Handful of unsalted nuts or roasted chana.']],
+        ['Lunch', ['Vegetable dal, sambar, or lentil soup prepared low-sodium.', 'Brown rice, millet, quinoa, or two whole-wheat rotis.', 'Salad with cucumber, tomatoes, greens, and lemon/olive oil dressing.', lowEf ? 'Prefer grilled fish, tofu, paneer, or chickpeas over fried proteins.' : 'Include lean protein such as fish, chicken, tofu, paneer, or legumes.']],
+        ['Evening snack', ['Buttermilk without added salt, herbal tea, or sprouts.', 'Roasted vegetables, makhana, or fruit instead of fried snacks.']],
+        ['Dinner', ['Early light dinner with roti/quinoa and mixed vegetable sabzi.', 'Dal, lean chicken, fish, tofu, or chickpea curry made low-oil.', 'Small serving of unsalted raita or curd if tolerated.']],
+      ],
+      avoid: [
+        'Processed meats, fried snacks, fast food, and bakery sweets.',
+        'Canned soups or packaged foods unless clearly low-sodium.',
+        'Pickles, papad, chutneys high in salt, namkeen, and salted nuts.',
+        'Sugary drinks, sweetened tea/coffee, desserts, and refined flour snacks.',
+        'Butter, ghee, coconut oil, and high-fat cheese as daily staples.',
+      ],
+      lifestyle: [
+        'Walk or do cardiac-safe activity for 20-30 minutes most days after physician clearance.',
+        'Monitor weight daily; report sudden gain, swelling, or breathlessness.',
+        hasDiabetes ? 'Keep meals consistent and recheck glucose/HbA1c as advised.' : 'Keep meal timing consistent to avoid large late meals.',
+        activeSmoking ? 'Use a structured cessation plan with counselling or medication support.' : 'Avoid tobacco exposure and second-hand smoke.',
+        'Prioritize 7-9 hours of sleep and daily stress-reduction practice.',
+      ],
+      urgent: [
+        'Sudden shortness of breath, especially at rest or lying down.',
+        'Rapid unexplained weight gain of 2-3 pounds in 24 hours.',
+        'Significant swelling in legs, ankles, or abdomen.',
+        'Persistent chest pain, dizziness, fainting, or confusion.',
+      ],
+    };
+  };
+
+  const openPredictionHistory = (row) => {
+    setPredictionHistoryPatient(row);
+  };
+
+  const viewPredictionDetails = (item) => {
+    const patient = item.patientSnapshot || patientRows.find((row) => row.id === item.id) || {
+      id: item.id,
+      name: item.name,
+      age: item.age,
+      ageSex: item.age ? `${item.age}y · -` : '--',
+      riskScore: item.riskScore,
+      riskLabel: item.riskLabel,
+    };
+    const form = item.formSnapshot || predictForm;
+    const result = item.result || makeStoredPrediction(patient).result;
+    const dietPlan = item.dietPlan || buildDietPlan(result, patient, form);
+    setReportPatient(patient);
+    setPredictForm((prev) => ({ ...prev, ...form }));
+    setPredictResult({ ...result, dietPlan });
+    setPredictionHistoryPatient(null);
+    setSelectedPredictionPatientId(patient.id || '');
+    setPredictionPatientQuery(patient.name && patient.id ? `${patient.name} (${patient.id})` : patient.name || '');
+    setPredictionStep(5);
+    goTo('/predict');
+  };
+
   const runPrediction = async () => {
     const patientQuery = predictionPatientQuery.trim();
     const exactPatientMatch = patientRows.find((row) => {
@@ -690,7 +837,6 @@ function App() {
         return;
       }
       await new Promise((r) => setTimeout(r, 1400));
-      setPredictResult(json);
       const normalizeRiskLabel = (label, score) => {
         if (label) return label;
         if (score >= 75) return 'Critical';
@@ -716,7 +862,14 @@ function App() {
         cholesterol: payload.cholesterol || '',
         glucose: payload.glucose || '',
         heartRate: payload.heart_rate || '',
+        smoking: payload.smoking,
+        diabetes: payload.diabetes,
+        hypertension: payload.hypertension,
+        predictedDays: json?.predicted_days || '',
       };
+      const dietPlan = buildDietPlan(json, predictionRecord, payload);
+      const resultWithDiet = { ...json, dietPlan };
+      setPredictResult(resultWithDiet);
       setReportPatient(predictionRecord);
       setSelectedPredictionPatientId(patientId);
       setPredictionPatientQuery(`${patientName} (${patientId})`);
@@ -734,8 +887,14 @@ function App() {
           name: predictionRecord.name,
           age: predictionRecord.age || payload.age || '',
           date: dateIso,
+          generatedAt: now.toISOString(),
           riskScore: predictionRecord.riskScore,
           riskLabel: predictionRecord.riskLabel,
+          predictedDays: predictionRecord.predictedDays,
+          patientSnapshot: predictionRecord,
+          formSnapshot: payload,
+          result: resultWithDiet,
+          dietPlan,
         },
       ]);
     } catch {
@@ -753,11 +912,54 @@ function App() {
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#039;');
 
-  const printPredictionReport = () => {
+  const downloadHtmlDocument = (filename, html) => {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const renderDietPlanHtml = (dietPlan) => {
+    if (!dietPlan) return '';
+    const targetRows = (dietPlan.targets || [])
+      .map(([target, value]) => `<tr><th>${escapeHtml(target)}</th><td>${escapeHtml(value)}</td></tr>`)
+      .join('');
+    const mealSections = (dietPlan.meals || [])
+      .map(([meal, items]) => `<h3>${escapeHtml(meal)}</h3><ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`)
+      .join('');
+    const avoidItems = (dietPlan.avoid || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+    const lifestyleItems = (dietPlan.lifestyle || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+    const urgentItems = (dietPlan.urgent || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+    return `
+    <section class="diet-section">
+      <h1>AI-Generated Preventive Diet & Lifestyle Plan</h1>
+      <p>${escapeHtml(dietPlan.intro || '')}</p>
+      <h2>Daily Targets</h2>
+      <table><tbody>${targetRows}</tbody></table>
+      <h2>Meal Plan</h2>
+      ${mealSections}
+      <section class="grid">
+        <div class="card warning"><h2>Foods to Avoid</h2><ul>${avoidItems}</ul></div>
+        <div class="card"><h2>Lifestyle Tips</h2><ul>${lifestyleItems}</ul></div>
+      </section>
+      <div class="card urgent"><h2>Seek Immediate Care If</h2><ul>${urgentItems}</ul></div>
+      <p class="footer">AI-generated guidance for clinical reference only. Final dietary prescriptions must be approved by the treating physician or dietitian.</p>
+    </section>`;
+  };
+
+  const printPredictionReport = (mode = 'combined') => {
     if (!predictResult || typeof window === 'undefined') return;
     const patient = reportPatient || {};
     const issuedAt = new Date();
     const generatedOn = issuedAt.toLocaleString();
+    const includeReport = mode !== 'diet';
+    const includeDiet = mode !== 'report';
+    const dietPlan = predictResult.dietPlan || buildDietPlan(predictResult, patient, predictForm);
     const forecastRows = (predictResult.forecast_points || [])
       .map((point) => `<tr><td>${escapeHtml(point.label)}</td><td>${escapeHtml(point.value)}%</td></tr>`)
       .join('');
@@ -771,11 +973,12 @@ function App() {
       .filter((row) => String(row.current).trim() || String(row.previous).trim())
       .map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${escapeHtml(row.previous || '--')}</td><td>${escapeHtml(row.current || '--')}</td></tr>`)
       .join('');
+    const documentTitle = mode === 'diet' ? 'HeartGuard Diet Plan' : mode === 'report' ? 'HeartGuard Prediction Report' : 'HeartGuard Combined Report';
     const reportHtml = `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>HeartGuard Prediction Report</title>
+  <title>${escapeHtml(documentTitle)}</title>
   <style>
     @page { size: A4; margin: 16mm; }
     body { margin: 0; color: #142331; font-family: Arial, Helvetica, sans-serif; background: #fff; }
@@ -796,6 +999,10 @@ function App() {
     th { background: #e8f6fb; color: #0a344e; font-size: 11px; letter-spacing: .6px; text-transform: uppercase; }
     ul { margin: 0; padding-left: 18px; }
     li { margin: 6px 0; }
+    h3 { margin: 16px 0 6px; color: #075079; font-size: 14px; }
+    .diet-section { margin-top: 26px; page-break-before: ${includeReport && includeDiet ? 'always' : 'auto'}; }
+    .warning { border-color: #f59b35; background: #fff8f1; }
+    .urgent { margin-top: 16px; border-color: #ff5367; background: #fff5f7; }
     .footer { margin-top: 18px; padding-top: 12px; border-top: 1px solid #dcebf2; color: #607789; font-size: 11px; line-height: 1.5; }
     .signature { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 30px; }
     .sig-line { border-top: 1px solid #9fb6c5; padding-top: 8px; color: #40596d; font-size: 12px; }
@@ -816,6 +1023,7 @@ function App() {
       </div>
     </section>
 
+    ${includeReport ? `
     <h1>Prediction Report</h1>
     <section class="card score">
       <div class="score-number">${escapeHtml(predictResult.risk_score)}%</div>
@@ -866,6 +1074,9 @@ function App() {
       <h2>Recommendations</h2>
       <ul>${recommendationItems}</ul>
     </section>
+    ` : ''}
+
+    ${includeDiet ? renderDietPlanHtml(dietPlan) : ''}
 
     <section class="signature">
       <div class="sig-line">Physician signature</div>
@@ -877,14 +1088,11 @@ function App() {
       Interpret results with the full clinical history, examination, and institutional protocol.
     </p>
   </main>
-  <script>window.onload = () => { window.focus(); window.print(); };</script>
 </body>
 </html>`;
-    const reportWindow = window.open('', '_blank', 'width=980,height=1200');
-    if (!reportWindow) return;
-    reportWindow.document.open();
-    reportWindow.document.write(reportHtml);
-    reportWindow.document.close();
+    const safePatient = String(patient.name || 'Patient').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'Patient';
+    const suffix = mode === 'diet' ? 'Diet_Plan' : mode === 'report' ? 'Prediction_Report' : 'Combined_Report';
+    downloadHtmlDocument(`HEARTGUARD_${safePatient}_${suffix}_${issuedAt.toISOString().slice(0, 10)}.html`, reportHtml);
   };
 
   useEffect(() => {
@@ -900,7 +1108,9 @@ function App() {
 
   useEffect(() => {
     if (isPatientsPage) {
-      setPatientSearch(new URLSearchParams(routeQuery).get('search') || '');
+      window.setTimeout(() => {
+        setPatientSearch(new URLSearchParams(routeQuery).get('search') || '');
+      }, 0);
     }
   }, [isPatientsPage, routeQuery]);
 
@@ -946,7 +1156,7 @@ function App() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    window.location.hash = path;
+    window.location.assign(nextHash);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1046,12 +1256,56 @@ function App() {
     }));
   }, [patientRows]);
 
-  const analyticsAdmissionPoints = [142, 158, 170, 176, 194, 207, 224, 232, 240].map((value, idx) => ({ label: idx, value }));
-  const analyticsReadmissionPoints = [128, 142, 156, 166, 180, 196, 216, 226, 240].map((value, idx) => ({ label: idx, value }));
-  const analyticsTrendPath = makeScaledLinePath(analyticsAdmissionPoints, 110, 250);
-  const analyticsTrendArea = makeScaledAreaPath(analyticsAdmissionPoints, 110, 250);
-  const analyticsReadmissionPath = makeScaledLinePath(analyticsReadmissionPoints, 110, 250);
-  const analyticsMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
+  const analyticsMonthlyTrend = useMemo(() => {
+    const monthFormatter = new Intl.DateTimeFormat('en', { month: 'short' });
+    const monthKeys = Array.from({ length: 9 }, (_, index) => {
+      const date = new Date();
+      date.setDate(1);
+      date.setMonth(date.getMonth() - (8 - index));
+      return {
+        key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+        label: monthFormatter.format(date),
+        admissions: 0,
+        readmissions: 0,
+      };
+    });
+    const buckets = new Map(monthKeys.map((month) => [month.key, month]));
+    patientRows.forEach((row) => {
+      const date = new Date(row.lastVisit || row.date || '');
+      if (Number.isNaN(date.getTime())) return;
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const bucket = buckets.get(key);
+      if (bucket) bucket.admissions += 1;
+    });
+    predictionHistory.forEach((item) => {
+      const date = new Date(item.date || item.lastVisit || '');
+      if (Number.isNaN(date.getTime())) return;
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const bucket = buckets.get(key);
+      if (bucket && Number(item.riskScore || 0) >= 50) bucket.readmissions += 1;
+    });
+    const hasMonthlyData = monthKeys.some((month) => month.admissions || month.readmissions);
+    if (!hasMonthlyData && patientRows.length) {
+      const latest = monthKeys[monthKeys.length - 1];
+      latest.admissions = patientRows.length;
+      latest.readmissions = patientRows.filter((row) => Number(row.riskScore || 0) >= 50).length;
+    }
+    return monthKeys;
+  }, [patientRows, predictionHistory]);
+  const analyticsTrendMax = Math.max(
+    1,
+    ...analyticsMonthlyTrend.flatMap((month) => [month.admissions, month.readmissions]),
+  );
+  const analyticsAdmissionPoints = analyticsMonthlyTrend.map((month, idx) => ({ label: idx, value: month.admissions }));
+  const analyticsReadmissionPoints = analyticsMonthlyTrend.map((month, idx) => ({ label: idx, value: month.readmissions }));
+  const analyticsTrendPath = makeScaledLinePath(analyticsAdmissionPoints, 0, analyticsTrendMax);
+  const analyticsTrendArea = makeScaledAreaPath(analyticsAdmissionPoints, 0, analyticsTrendMax);
+  const analyticsReadmissionPath = makeScaledLinePath(analyticsReadmissionPoints, 0, analyticsTrendMax);
+  const getAnalyticsTrendY = (value) => {
+    const normalized = (Number(value) || 0) / analyticsTrendMax;
+    return 190 - 18 - Math.max(0, Math.min(1, normalized)) * (190 - 36);
+  };
+  const analyticsMonths = analyticsMonthlyTrend.map((month) => month.label);
   const modelFeatureImportance = [
     ['Ejection Fraction', 0.21],
     ['Serum Creatinine', 0.18],
@@ -1485,6 +1739,14 @@ function App() {
                                   <UiIcon type="upload" />
                                   <span>Upload Reports</span>
                                 </button>
+                                <button
+                                  type="button"
+                                  className="ghost-btn patient-action-btn"
+                                  onClick={() => openPredictionHistory(row)}
+                                >
+                                  <UiIcon type="menu-prediction" />
+                                  <span>View Predictions</span>
+                                </button>
                               </div>
                               {reports.length ? (
                                 <div className="patient-report-list">
@@ -1613,6 +1875,49 @@ function App() {
                   </div>
                 </div>
               ) : null}
+              {predictionHistoryPatient ? (
+                <div className="patient-modal-overlay">
+                  <div className="patient-modal-card prediction-history-modal" role="dialog" aria-modal="true" aria-labelledby="prediction-history-title">
+                    <div className="patient-modal-head">
+                      <div>
+                        <h3 id="prediction-history-title">Previous Predictions</h3>
+                        <p>{predictionHistoryPatient.id} · {predictionHistoryPatient.name}</p>
+                      </div>
+                      <button onClick={() => setPredictionHistoryPatient(null)} aria-label="Close prediction history">×</button>
+                    </div>
+                    <div className="prediction-history-list">
+                      {predictionHistoryForPatient.length ? (
+                        predictionHistoryForPatient.map((item, index) => (
+                          <article className="prediction-history-item" key={`${item.id}-${item.generatedAt || item.date}-${index}`}>
+                            <div>
+                              <strong>Risk score {item.riskScore || item.result?.risk_score || 0}% · <span>{item.riskLabel || item.result?.risk_category || 'Low'}</span></strong>
+                              <p>{item.generatedAt || item.date ? new Date(item.generatedAt || item.date).toLocaleString() : 'Saved prediction'} · forecast ~{item.predictedDays || item.result?.predicted_days || '--'} days</p>
+                            </div>
+                            <button type="button" onClick={() => viewPredictionDetails(item)}>
+                              <UiIcon type="menu-prediction" />
+                              <span>View details</span>
+                            </button>
+                          </article>
+                        ))
+                      ) : (
+                        <div className="prediction-history-empty">
+                          <p>No saved predictions yet for this patient.</p>
+                          <button
+                            className="primary-btn"
+                            onClick={() => {
+                              fillPreviousVisitFromPatient(predictionHistoryPatient);
+                              setPredictionHistoryPatient(null);
+                              goTo('/predict');
+                            }}
+                          >
+                            Run Forecast
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </>
           ) : isAnalyticsPage ? (
             <>
@@ -1650,12 +1955,12 @@ function App() {
                       <path className="line readmissions" d={analyticsReadmissionPath} />
                       {analyticsAdmissionPoints.map((pt, idx) => {
                         const x = 18 + (idx * (520 - 36)) / 8;
-                        const y = 190 - 18 - ((pt.value - 110) / 140) * (190 - 36);
+                        const y = getAnalyticsTrendY(pt.value);
                         return <circle key={`admission-dot-${idx}`} className="line-dot admissions-dot" cx={x} cy={y} r="4" />;
                       })}
                       {analyticsReadmissionPoints.map((pt, idx) => {
                         const x = 18 + (idx * (520 - 36)) / 8;
-                        const y = 190 - 18 - ((pt.value - 110) / 140) * (190 - 36);
+                        const y = getAnalyticsTrendY(pt.value);
                         return <circle key={`readmission-dot-${idx}`} className="line-dot readmissions-dot" cx={x} cy={y} r="4" />;
                       })}
                     </svg>
@@ -2057,8 +2362,9 @@ function App() {
                     </div>
                   ) : null}
                   <div className="predict-result-actions">
-                    <button className="ghost-btn" onClick={() => { setPredictResult(null); setPredictionStep(1); }}>New prediction</button>
-                    <button className="primary-btn" onClick={printPredictionReport}>Print PDF report</button>
+                    <button className="result-action-btn secondary" onClick={() => { setPredictResult(null); setPredictionStep(1); }}>New Prediction</button>
+                    <button className="result-action-btn primary" onClick={() => printPredictionReport('report')}>Download Report</button>
+                    <button className="result-action-btn primary" onClick={() => printPredictionReport('diet')}>Download Diet Plan</button>
                   </div>
                 </div>
               </div>
@@ -2123,6 +2429,55 @@ function App() {
                   </ul>
                 </article>
               </div>
+              <article className="predict-result-card diet-plan-card">
+                <div className="diet-plan-head">
+                  <div>
+                    <h4>AI Preventive Insights - Personalized Diet & Lifestyle Plan</h4>
+                    <p>Generated from this patient's vitals, labs, risk category, and trajectory.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="ghost-btn"
+                    onClick={() => setPredictResult((prev) => (prev ? { ...prev, dietPlan: buildDietPlan(prev, reportPatient, predictForm) } : prev))}
+                  >
+                    Regenerate
+                  </button>
+                </div>
+                {predictResult.dietPlan ? (
+                  <div className="diet-plan-content">
+                    <p className="diet-intro">{predictResult.dietPlan.intro}</p>
+                    <div className="diet-targets">
+                      {(predictResult.dietPlan.targets || []).map(([target, value]) => (
+                        <div key={target}><span>{target}</span><strong>{value}</strong></div>
+                      ))}
+                    </div>
+                    <h5>Meal Plan</h5>
+                    <div className="meal-plan-grid">
+                      {(predictResult.dietPlan.meals || []).map(([meal, items]) => (
+                        <section key={meal}>
+                          <h6>{meal}</h6>
+                          <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul>
+                        </section>
+                      ))}
+                    </div>
+                    <div className="diet-guidance-grid">
+                      <section className="foods-avoid">
+                        <h5>Foods to Avoid</h5>
+                        <ul>{(predictResult.dietPlan.avoid || []).map((item) => <li key={item}>{item}</li>)}</ul>
+                      </section>
+                      <section className="lifestyle-tips">
+                        <h5>Lifestyle Tips</h5>
+                        <ul>{(predictResult.dietPlan.lifestyle || []).map((item) => <li key={item}>{item}</li>)}</ul>
+                      </section>
+                    </div>
+                    <section className="urgent-care">
+                      <h5>Seek Immediate Care If</h5>
+                      <ul>{(predictResult.dietPlan.urgent || []).map((item) => <li key={item}>{item}</li>)}</ul>
+                    </section>
+                    <p className="diet-disclaimer">AI-generated guidance for clinical reference only. Final dietary prescriptions must be approved by the treating physician or dietitian.</p>
+                  </div>
+                ) : null}
+              </article>
             </div>
           )}
         </section>

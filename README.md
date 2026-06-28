@@ -72,6 +72,9 @@ cd ..
 py -3.11 -m py_compile backend/main.py
 ```
 
+Manual prediction scenarios for new and existing patients are documented in
+[`PREDICTION_TEST_CASES.md`](PREDICTION_TEST_CASES.md).
+
 ## Deploy On Render
 
 This repo includes `render.yaml` for a two-service Render Blueprint:
