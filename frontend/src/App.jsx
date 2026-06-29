@@ -80,10 +80,44 @@ const demoPatients = [
 const demoPredictionSeed = demoPatients.slice(0, 6);
 const demoDataVersion = 'heartguard-demo-v4';
 
+const riskWindowDays = {
+  critical: 20,
+  high: 30,
+  medium: 45,
+  moderate: 45,
+  low: 60,
+};
+
+function getRiskForecastWindow(score = 0, label = '') {
+  const key = String(label || '').trim().toLowerCase();
+  if (riskWindowDays[key]) return riskWindowDays[key];
+  const safeScore = Number(score) || 0;
+  if (safeScore >= 75) return riskWindowDays.critical;
+  if (safeScore >= 60) return riskWindowDays.high;
+  if (safeScore >= 40) return riskWindowDays.medium;
+  return riskWindowDays.low;
+}
+
+function makeForecastPoints(score = 0, predictedDays = 60, projectedIncrease = 6) {
+  const safeScore = Math.max(0, Math.min(100, Number(score) || 0));
+  const safeDays = Number(predictedDays) || 60;
+  const futureDays = [7, 14, 20, 30, 45, 60].filter((day) => day <= safeDays);
+  if (!futureDays.includes(safeDays)) futureDays.push(safeDays);
+  const pastValue = Math.max(1, Math.round(safeScore - Math.max(6, Math.abs(projectedIncrease) * 0.8)));
+  return [
+    { label: `${safeDays}d ago`, value: pastValue },
+    { label: 'Today', value: Math.round(safeScore) },
+    ...futureDays.map((day) => ({
+      label: `+${day}d`,
+      value: Math.min(99, Math.round(safeScore + projectedIncrease * (day / safeDays))),
+    })),
+  ];
+}
+
 function makeStoredPrediction(patient, index = 0) {
   const riskScore = Number(patient.riskScore || 0);
-  const predictedDays = Math.max(14, Math.round(92 - riskScore * 0.6));
   const riskLabel = patient.riskLabel || (riskScore >= 60 ? 'High' : riskScore >= 40 ? 'Moderate' : 'Low');
+  const predictedDays = getRiskForecastWindow(riskScore, riskLabel);
   const formSnapshot = {
     age: patient.age || '',
     bmi: patient.bmi || '',
@@ -127,15 +161,7 @@ function makeStoredPrediction(patient, index = 0) {
       ...(formSnapshot.diabetes ? ['Optimize glycemic control and monitor HbA1c.'] : []),
     ].slice(0, 6),
     trajectory: { enabled: true, direction: riskScore >= 55 ? 'worsening' : 'stable', pts_per_day: riskScore >= 55 ? 0.18 : 0.03 },
-    forecast_points: [
-      { label: '60d ago', value: Math.max(1, riskScore - 10) },
-      { label: 'Today', value: riskScore },
-      { label: '+7d', value: Math.min(99, riskScore + 1) },
-      { label: '+14d', value: Math.min(99, riskScore + 2) },
-      { label: '+30d', value: Math.min(99, riskScore + 4) },
-      { label: '+45d', value: Math.min(99, riskScore + 5) },
-      { label: '+60d', value: Math.min(99, riskScore + 6) },
-    ],
+    forecast_points: makeForecastPoints(riskScore, predictedDays, 6),
   };
   return {
     id: patient.id,
@@ -283,6 +309,7 @@ function App() {
   const [dashboardSearch, setDashboardSearch] = useState('');
   const [predictionStep, setPredictionStep] = useState(1);
   const [predictLoading, setPredictLoading] = useState(false);
+  const [predictProgress, setPredictProgress] = useState(0);
   const [predictResult, setPredictResult] = useState(null);
   const [reportPatient, setReportPatient] = useState(null);
   const [predictionHistoryPatient, setPredictionHistoryPatient] = useState(null);
@@ -749,16 +776,31 @@ function App() {
     };
     const form = item.formSnapshot || predictForm;
     const result = item.result || makeStoredPrediction(patient).result;
-    const dietPlan = item.dietPlan || buildDietPlan(result, patient, form);
+    const normalizedDays = getRiskForecastWindow(result.risk_score || item.riskScore, result.risk_category || item.riskLabel);
+    const normalizedResult = {
+      ...result,
+      predicted_days: normalizedDays,
+      forecast_points: makeForecastPoints(result.risk_score || item.riskScore, normalizedDays, 6),
+    };
+    const dietPlan = item.dietPlan || buildDietPlan(normalizedResult, patient, form);
     setReportPatient(patient);
     setPredictForm((prev) => ({ ...prev, ...form }));
-    setPredictResult({ ...result, dietPlan });
+    setPredictResult({ ...normalizedResult, dietPlan });
     setPredictionHistoryPatient(null);
     setSelectedPredictionPatientId(patient.id || '');
     setPredictionPatientQuery(patient.name && patient.id ? `${patient.name} (${patient.id})` : patient.name || '');
     setPredictionStep(5);
     goTo('/predict');
   };
+
+  const beginPredictionProgress = () =>
+    window.setInterval(() => {
+      setPredictProgress((current) => {
+        if (current >= 95) return 95;
+        const increment = current < 35 ? 3 : current < 75 ? 2 : 1;
+        return Math.min(95, current + increment);
+      });
+    }, 35);
 
   const runPrediction = async () => {
     const patientQuery = predictionPatientQuery.trim();
@@ -823,7 +865,9 @@ function App() {
     };
     setPredictError('');
     setPredictLoading(true);
+    setPredictProgress(0);
     setPredictResult(null);
+    const progressTimer = beginPredictionProgress();
     try {
       const res = await fetch(apiUrl('/api/predict'), {
         method: 'POST',
@@ -833,10 +877,10 @@ function App() {
       const json = await res.json();
       if (!res.ok) {
         setPredictError(json?.detail || 'Prediction failed. Please provide valid inputs.');
+        window.clearInterval(progressTimer);
         setPredictLoading(false);
         return;
       }
-      await new Promise((r) => setTimeout(r, 1400));
       const normalizeRiskLabel = (label, score) => {
         if (label) return label;
         if (score >= 75) return 'Critical';
@@ -845,6 +889,9 @@ function App() {
         return 'Low';
       };
       const riskLabel = normalizeRiskLabel(json?.risk_category, Number(json?.risk_score || 0));
+      const predictedDays = getRiskForecastWindow(json?.risk_score, riskLabel);
+      const trajectoryIncrease = Math.max(3, Math.min(12, Math.abs(Number(json?.trajectory?.pts_per_day || 0)) * predictedDays * 0.6 || 6));
+      const normalizedForecastPoints = makeForecastPoints(json?.risk_score, predictedDays, trajectoryIncrease);
       const now = new Date();
       const dateIso = now.toISOString().slice(0, 10);
       const predictionRecord = {
@@ -865,10 +912,19 @@ function App() {
         smoking: payload.smoking,
         diabetes: payload.diabetes,
         hypertension: payload.hypertension,
-        predictedDays: json?.predicted_days || '',
+        predictedDays,
       };
-      const dietPlan = buildDietPlan(json, predictionRecord, payload);
-      const resultWithDiet = { ...json, dietPlan };
+      const normalizedResult = {
+        ...json,
+        risk_category: riskLabel,
+        predicted_days: predictedDays,
+        forecast_points: normalizedForecastPoints,
+      };
+      const dietPlan = buildDietPlan(normalizedResult, predictionRecord, payload);
+      const resultWithDiet = { ...normalizedResult, dietPlan };
+      window.clearInterval(progressTimer);
+      setPredictProgress(100);
+      await new Promise((resolve) => window.setTimeout(resolve, 320));
       setPredictResult(resultWithDiet);
       setReportPatient(predictionRecord);
       setSelectedPredictionPatientId(patientId);
@@ -898,8 +954,10 @@ function App() {
         },
       ]);
     } catch {
+      window.clearInterval(progressTimer);
       setPredictError('Prediction service is unavailable. Please try again when backend is running.');
     } finally {
+      window.clearInterval(progressTimer);
       setPredictLoading(false);
     }
   };
@@ -960,6 +1018,7 @@ function App() {
     const includeReport = mode !== 'diet';
     const includeDiet = mode !== 'report';
     const dietPlan = predictResult.dietPlan || buildDietPlan(predictResult, patient, predictForm);
+    const reportForecastDays = getRiskForecastWindow(predictResult.risk_score, predictResult.risk_category);
     const forecastRows = (predictResult.forecast_points || [])
       .map((point) => `<tr><td>${escapeHtml(point.label)}</td><td>${escapeHtml(point.value)}%</td></tr>`)
       .join('');
@@ -1059,7 +1118,7 @@ function App() {
 
     <section class="grid">
       <div class="card">
-        <h2>60-Day Forecast</h2>
+        <h2>${reportForecastDays}-Day Forecast</h2>
         <table><thead><tr><th>Time point</th><th>Risk</th></tr></thead><tbody>${forecastRows}</tbody></table>
       </div>
       <div class="card">
@@ -1160,7 +1219,12 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const forecastPoints = predictResult?.forecast_points || [];
+  const displayedForecastDays = predictResult ? getRiskForecastWindow(predictResult.risk_score, predictResult.risk_category) : 60;
+  const forecastPoints = predictResult?.forecast_points?.length
+    ? predictResult.forecast_points
+    : predictResult
+      ? makeForecastPoints(predictResult.risk_score, displayedForecastDays, 6)
+      : [];
   const forecastMax = Math.max(100, ...forecastPoints.map((p) => Number(p.value) || 0));
   const chartWidth = 860;
   const chartHeight = 230;
@@ -2334,16 +2398,21 @@ function App() {
                   {predictionStep < 5 ? (
                     <button className="primary-btn" onClick={goToNextPredictionStep}>Next</button>
                   ) : (
-                    <button className="primary-btn" onClick={runPrediction}>Run Forecast</button>
+                    <button className="primary-btn" disabled={predictLoading} onClick={runPrediction}>Run Forecast</button>
                   )}
                 </div>
                 {predictError ? <p className="add-patient-error">{predictError}</p> : null}
               </div>
               {predictLoading ? (
                 <div className="predict-loading">
-                  <div className="spinner">✶</div>
+                  <div className="loading-progress-ring" style={{ '--progress': predictProgress }}>
+                    <span>{predictProgress}%</span>
+                  </div>
+                  <div className="loading-progress-track">
+                    <i style={{ width: `${predictProgress}%` }} />
+                  </div>
                   <h3>AI processing clinical data...</h3>
-                  <p>Evaluating 12 features against trained model</p>
+                  <p>{predictProgress < 35 ? 'Reading clinical inputs...' : predictProgress < 70 ? 'Comparing previous vs current report...' : predictProgress < 100 ? 'Forecasting readmission window...' : 'Preparing prediction result...'}</p>
                 </div>
               ) : null}
             </>
@@ -2369,7 +2438,7 @@ function App() {
                 </div>
               </div>
               <article className="predict-result-card chart-card">
-                <h4>60-Day Risk Forecast</h4>
+                <h4>{displayedForecastDays}-Day Risk Forecast</h4>
                 <p>Projection based on previous → current trajectory</p>
                 <div className="forecast-chart-wrap">
                   <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="forecast-chart" aria-hidden="true">
@@ -2380,7 +2449,7 @@ function App() {
                       return <circle key={pt.label} cx={x} cy={y} r="4.6" className="forecast-dot" />;
                     })}
                   </svg>
-                  <div className="forecast-labels">
+                  <div className="forecast-labels" style={{ gridTemplateColumns: `repeat(${forecastPoints.length}, 1fr)` }}>
                     {forecastPoints.map((pt) => (
                       <span key={pt.label}>{pt.label}</span>
                     ))}

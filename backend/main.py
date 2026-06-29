@@ -375,16 +375,16 @@ def predict(payload: PredictPayload) -> dict:
 
     if score >= 75:
         category = "Critical"
-        days = 30
+        days = 20
     elif score >= 60:
         category = "High"
-        days = 61
+        days = 30
     elif score >= 40:
         category = "Moderate"
-        days = 120
+        days = 45
     else:
         category = "Low"
-        days = 180
+        days = 60
 
     label_map = {
         "ejection_fraction": "Reduced ejection fraction",
@@ -434,19 +434,19 @@ def predict(payload: PredictPayload) -> dict:
     pts_per_day = round(trajectory_points / max(1.0, payload.days_since_last_visit or 1), 3)
 
     future_boost = max(0.0, trajectory_points * 0.25)
-    p7 = min(99, round(score + future_boost * 0.2))
-    p14 = min(99, round(score + future_boost * 0.35))
-    p30 = min(99, round(score + future_boost * 0.7))
-    p45 = min(99, round(score + future_boost * 0.95))
-    p60 = min(99, round(score + future_boost * 1.2))
+    future_days = [day for day in [7, 14, 20, 30, 45, 60] if day <= days]
+    if days not in future_days:
+        future_days.append(days)
     forecast_points = [
-        {"label": "60d ago", "value": max(1, round(score - max(6, future_boost * 0.8)))},
+        {"label": f"{days}d ago", "value": max(1, round(score - max(6, future_boost * 0.8)))},
         {"label": "Today", "value": score},
-        {"label": "+7d", "value": p7},
-        {"label": "+14d", "value": p14},
-        {"label": "+30d", "value": p30},
-        {"label": "+45d", "value": p45},
-        {"label": "+60d", "value": p60},
+        *[
+            {
+                "label": f"+{day}d",
+                "value": min(99, round(score + future_boost * 1.2 * (day / max(1, days)))),
+            }
+            for day in future_days
+        ],
     ]
 
     response = {

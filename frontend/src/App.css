@@ -2154,16 +2154,64 @@ main { max-width: 1520px; margin: 52px auto 0; }
 }
 .predict-loading {
   position: fixed; inset: 0; z-index: 80;
-  background: rgba(2,15,28,.62); backdrop-filter: blur(10px);
-  display: grid; place-content: center; text-align: center;
+  background: rgba(2, 15, 28, 0.76); backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 28px;
 }
-.predict-loading .spinner {
-  font-size: 60px; color: #16c0ea; margin-bottom: 8px;
-  animation: spin 1.2s linear infinite;
+.loading-progress-ring {
+  --ring-size: 136px;
+  --ring-thickness: 9px;
+  width: var(--ring-size);
+  height: var(--ring-size);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 32px;
+  background:
+    radial-gradient(circle, rgba(2, 15, 28, 0.96) 57%, transparent 58%),
+    conic-gradient(#18c8ed calc(var(--progress) * 1%), rgba(18, 191, 232, 0.16) 0);
+  box-shadow: 0 0 30px rgba(18, 191, 232, 0.22), inset 0 0 24px rgba(18, 191, 232, 0.08);
+  position: relative;
+}
+.loading-progress-ring::after {
+  content: "";
+  position: absolute;
+  inset: var(--ring-thickness);
+  border-radius: inherit;
+  border: 1px solid rgba(75, 136, 160, 0.24);
+}
+.loading-progress-ring span {
+  position: relative;
+  z-index: 1;
+  color: #edf9ff;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+}
+.loading-progress-track {
+  width: min(480px, 62vw);
+  height: 15px;
+  border: 1px solid rgba(24, 200, 237, 0.22);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(4, 59, 77, 0.7);
+  box-shadow: 0 0 18px rgba(18, 191, 232, 0.16), inset 0 1px 2px rgba(0, 0, 0, 0.24);
+  margin-bottom: 28px;
+}
+.loading-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #16c5eb, #12d4f4);
+  box-shadow: 0 0 22px rgba(18, 212, 244, 0.72);
+  transition: width 0.12s linear;
 }
 .predict-loading h3 { margin: 0; font-size: 18px; }
 .predict-loading p { margin: 6px 0 0; color: #8eaec3; }
-@keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
 
 .predict-result-wrap {
   margin-top: 16px;
